@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GuardianHealth - Elderly Health Monitoring and Emergency Response System">
+    <meta name="theme-color" content="#2c3e50">
+    <title>GuardianHealth - Elderly Health Monitor</title>
+
+    <!-- Leaflet CSS for Maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+    <!-- Chart.js for Health Trends -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>❤️</text></svg>">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="container">
+            <div class="header-content">
+                <div class="logo">
+                    <span class="heart-icon">❤️</span>
+                    <h1>GuardianHealth</h1>
+                </div>
+                <div class="header-actions">
+                    <button id="themeToggle" class="icon-btn" title="Toggle Dark/Light Mode">
+                        <span class="theme-icon">🌙</span>
+                    </button>
+                    <button id="installBtn" class="icon-btn install-btn" style="display: none;" title="Install App">
+                        <span>📱</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="container main-content">
+        <!-- Alert Banner -->
+        <div id="alertBanner" class="alert-banner" style="display: none;">
+            <span class="alert-icon">⚠️</span>
+            <span id="alertMessage"></span>
+            <button class="alert-close" onclick="closeAlert()">×</button>
+        </div>
+
+        <!-- Health Input Section -->
+        <section class="card">
+            <h2 class="card-title">📊 Health Monitoring</h2>
+            <div class="input-grid">
+                <div class="input-group">
+                    <label for="age">Age (years)</label>
+                    <input type="number" id="age" min="40" max="120" placeholder="e.g., 65" required>
+                </div>
+                <div class="input-group">
+                    <label for="systolicBP">Systolic BP (mmHg)</label>
+                    <input type="number" id="systolicBP" min="50" max="250" placeholder="e.g., 120" required>
+                </div>
+                <div class="input-group">
+                    <label for="diastolicBP">Diastolic BP (mmHg)</label>
+                    <input type="number" id="diastolicBP" min="30" max="150" placeholder="e.g., 80" required>
+                </div>
+                <div class="input-group">
+                    <label for="heartRate">Heart Rate (bpm)</label>
+                    <input type="number" id="heartRate" min="30" max="200" placeholder="e.g., 72" required>
+                </div>
+            </div>
+            <button id="checkHealthBtn" class="btn btn-primary btn-large">
+                <span>🔍 Check Health Risk</span>
+            </button>
+        </section>
+
+        <!-- Prediction Result Section -->
+        <section id="resultSection" class="card" style="display: none;">
+            <h2 class="card-title">📋 Risk Assessment</h2>
+            <div id="resultContent" class="result-content">
+                <div class="risk-indicator">
+                    <div id="riskIcon" class="risk-icon"></div>
+                    <h3 id="riskLevel" class="risk-level"></h3>
+                    <p id="riskMessage" class="risk-message"></p>
+                </div>
+                <div class="probability-bars">
+                    <div class="prob-item">
+                        <label>Low Risk</label>
+                        <div class="progress-bar">
+                            <div id="probLow" class="progress-fill low"></div>
+                        </div>
+                        <span id="probLowText"></span>
+                    </div>
+                    <div class="prob-item">
+                        <label>Medium Risk</label>
+                        <div class="progress-bar">
+                            <div id="probMedium" class="progress-fill medium"></div>
+                        </div>
+                        <span id="probMediumText"></span>
+                    </div>
+                    <div class="prob-item">
+                        <label>High Risk</label>
+                        <div class="progress-bar">
+                            <div id="probHigh" class="progress-fill high"></div>
+                        </div>
+                        <span id="probHighText"></span>
+                    </div>
+                </div>
+                <div id="overrideInfo" style="display: none;" class="override-info">
+                    <strong>⚠️ Safety Alert:</strong>
+                    <p id="overrideReason"></p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Emergency Actions -->
+        <section id="emergencySection" class="card emergency-card" style="display: none;">
+            <h2 class="card-title">🚨 Emergency Actions</h2>
+            <div class="emergency-grid">
+                <button id="emergencyAlertBtn" class="btn btn-danger btn-large pulse">
+                    <span>🚨 EMERGENCY ALERT</span>
+                </button>
+                <button id="shareLocationBtn" class="btn btn-warning btn-large">
+                    <span>📍 Share My Location</span>
+                </button>
+                <button id="callFamilyBtn" class="btn btn-info btn-large">
+                    <span>📞 Call Emergency Contact</span>
+                </button>
+                <button id="findHospitalsBtn" class="btn btn-secondary btn-large">
+                    <span>🏥 Find Nearby Hospitals</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Location & Map Section -->
+        <section class="card">
+            <h2 class="card-title">📍 Live Location</h2>
+            <div id="locationStatus" class="location-status">
+                <button id="getLocationBtn" class="btn btn-primary">
+                    <span>📍 Get My Location</span>
+                </button>
+            </div>
+            <div id="locationInfo" style="display: none;">
+                <p><strong>Latitude:</strong> <span id="latitude"></span></p>
+                <p><strong>Longitude:</strong> <span id="longitude"></span></p>
+                <p><strong>Accuracy:</strong> <span id="accuracy"></span></p>
+            </div>
+            <div id="map" class="map-container" style="display: none;"></div>
+            <div id="hospitalsList" class="hospitals-list" style="display: none;">
+                <h3>🏥 Nearby Hospitals</h3>
+                <div id="hospitalsContent"></div>
+            </div>
+        </section>
+
+        <!-- Emergency Contacts Management -->
+        <section class="card">
+            <h2 class="card-title">👨‍👩‍👧‍👦 Emergency Contacts</h2>
+            <div class="contacts-input">
+                <input type="text" id="contactName" placeholder="Contact Name (e.g., Son - John)">
+                <input type="tel" id="contactPhone" placeholder="Phone Number (e.g., +1234567890)">
+                <button id="addContactBtn" class="btn btn-primary">
+                    <span>➕ Add Contact</span>
+                </button>
+            </div>
+            <div id="contactsList" class="contacts-list"></div>
+        </section>
+
+        <!-- Health Trends Chart -->
+        <section class="card">
+            <h2 class="card-title">📈 Health Trends</h2>
+            <canvas id="healthChart"></canvas>
+        </section>
+
+        <!-- History Section -->
+        <section class="card">
+            <h2 class="card-title">📜 Health History</h2>
+            <div class="history-controls">
+                <button id="clearHistoryBtn" class="btn btn-secondary">
+                    <span>🗑️ Clear History</span>
+                </button>
+            </div>
+            <div id="historyList" class="history-list"></div>
+        </section>
+    </main>
+
+    <!-- Emergency Modal -->
+    <div id="emergencyModal" class="modal">
+        <div class="modal-content emergency-modal">
+            <h2>🚨 EMERGENCY ALERT ACTIVATED</h2>
+            <p class="emergency-text">Help has been requested. Stay calm.</p>
+            <div class="modal-actions">
+                <button id="closeModalBtn" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Family Contacts Modal -->
+    <div id="familyModal" class="modal">
+        <div class="modal-content">
+            <h2>📞 Emergency Contacts</h2>
+            <div id="familyContactsList"></div>
+            <button class="btn btn-secondary" onclick="closeFamilyModal()">Close</button>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>GuardianHealth &copy; 2026 | Elderly Health Monitoring System</p>
+        <p class="footer-note">⚠️ This is a health assistance tool. Always consult medical professionals for emergencies.</p>
+    </footer>
+
+    <!-- Custom JavaScript -->
+    <script src="script.js"></script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        // Register service worker for PWA functionality
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('✓ Service Worker registered'))
+                    .catch(err => console.log('✗ Service Worker registration failed:', err));
+            });
+        }
+
+        // PWA Install Prompt
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            document.getElementById('installBtn').style.display = 'block';
+        });
+
+        document.getElementById('installBtn').addEventListener('click', async () => {
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log(`User response: ${outcome}`);
+                deferredPrompt = null;
+                document.getElementById('installBtn').style.display = 'none';
+            }
+        });
+    </script>
+</body>
+</html>
